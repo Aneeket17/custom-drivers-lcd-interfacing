@@ -237,6 +237,16 @@
 #define USART_SR_CTS        			9
 
 
+/* 
+The project leaves the STM32F411 on its 16 MHz HSI reset clock.
+System tick timer flags and control bits for delay implementation.
+*/
+#define LCD_SYSCLK_HZ       16000000U
+#define SYSTICK_BASEADDR    0xE000E010U
+#define SYSTICK_CTRL_ENABLE (1U << 0)
+#define SYSTICK_CTRL_CLKSOURCE (1U << 2)
+#define SYSTICK_CTRL_COUNTFLAG (1U << 16)
+
 /*
  * This macros returns a code between 0 and 5 for a given GPIO base address
  */
@@ -453,6 +463,16 @@ typedef struct
 	__vo uint32_t GTPR;       /*!< TODO,     										Address offset: 0x18 */
 }USART_RegDefTypedef;
 
+/*
+ * peripheral register definition structure for systick timer
+ */
+typedef struct
+{
+    volatile uint32_t CTRL;
+    volatile uint32_t LOAD;
+    volatile uint32_t VAL;
+    volatile uint32_t CALIB;
+} LCD_SysTickRegDef;
 
 /*
  * Peripheral definitions (Peripheral definitions type-casted to xx_RegDefTypedef)

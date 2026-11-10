@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"C:/Aniket/embedded_sys/stm32/projects/custom-drivers-lcd-interfacing/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

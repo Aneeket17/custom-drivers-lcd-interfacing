@@ -17,27 +17,28 @@ P7 -> D7        (MSB)
 #include "lcd_i2c.h"
 #include <stddef.h>
 
-/* The project leaves the STM32F411 on its 16 MHz HSI reset clock. */
-#define LCD_SYSCLK_HZ       16000000U
-#define SYSTICK_BASEADDR    0xE000E010U
-#define SYSTICK_CTRL_ENABLE (1U << 0)
-#define SYSTICK_CTRL_CLKSOURCE (1U << 2)
-#define SYSTICK_CTRL_COUNTFLAG (1U << 16)
-
-typedef struct
-{
-    volatile uint32_t CTRL;
-    volatile uint32_t LOAD;
-    volatile uint32_t VAL;
-    volatile uint32_t CALIB;
-} LCD_SysTickRegDef;
-
 #define LCD_SYSTICK ((LCD_SysTickRegDef *)SYSTICK_BASEADDR)
 
 #define LCD_BACKLIGHT       0x08U
 #define LCD_ENABLE          0x04U
 #define LCD_REGISTER_SELECT 0x01U
 #define LCD_I2C_TIMEOUT_MS  100U
+
+static LCD_StatusTypeDef LCD_I2C_Init(I2C_HandleTypedef *i2c)
+{
+    if ((i2c == NULL) || (i2c->pI2Cx == NULL))
+    {
+        return LCD_ERROR;
+    }
+
+    i2c->I2C_Config.I2C_AckControl = I2C_ACK_ENABLE;
+    i2c->I2C_Config.I2C_FMDutyCycle = I2C_FM_DUTY_2;
+    i2c->I2C_Config.I2C_SCLSpeed = I2C_SCL_SPEED_SM;
+
+    I2C_Init(i2c);
+    I2C_PeripheralControl(i2c->pI2Cx, ENABLE);
+    return LCD_OK;
+}
 
 static void LCD_DelayMs(uint32_t milliseconds)
 {
@@ -130,15 +131,22 @@ LCD_StatusTypeDef LCD_Init(LCD_HandleTypedef *lcd, I2C_HandleTypedef *i2c,
 {
     LCD_StatusTypeDef status;
 
-    /* Validate inputs and convert the 7-bit address to the HAL format. */
-    if ((lcd == NULL) || (i2c == NULL) || (address > 0x7FU))
+    /* The I2C peripheral must be selected by the caller; address is 7-bit. */
+    if ((lcd == NULL) || (i2c == NULL) || (i2c->pI2Cx == NULL) ||
+        (address > 0x7FU))
     {
         return LCD_ERROR;
     }
 
     lcd->i2c = i2c;
-    lcd->address = (uint16_t)(address << 1U); // Shift left to match HAL I2C address format
+    lcd->address = address;
     lcd->backlight = LCD_BACKLIGHT;
+
+    status = LCD_I2C_Init(i2c);
+    if (status != LCD_OK)
+    {
+        return status;
+    }
 
     /* Allow power-up to complete before entering the controller's 4-bit mode. */
     LCD_DelayMs(50U);
@@ -216,8 +224,8 @@ DDRAM address based on the specified row and column, then sends the
 corresponding command to the LCD. It returns LCD_OK if successful, or an error code 
 if there was a problem with the I2C transmission or invalid coordinates.
 
-To set the cursor at row 0, column 0, send row=0 and column=0. The command will be 0x80.
-For row 1, column 0, the command is 0xC0.
+To set the cursor at row 0, send row=0. The command will be 0x80.
+For row 1, send row=1. The command is 0xC0.
 */
 LCD_StatusTypeDef LCD_SetCursor(LCD_HandleTypedef *lcd, uint8_t row,
                                 uint8_t column)
