@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "lcd_i2c.h"
 #include "dht11.h"
@@ -8,7 +9,7 @@
 #define GPIO_AF4_I2C    4U
 #define DATA_PIN        8U
 
-static void ConfigureI2CPin(GPIO_HandleTypedef *gpio, uint8_t pin)
+void ConfigureI2CPin(GPIO_HandleTypedef *gpio, uint8_t pin)
 {
     gpio->pGPIOx = GPIOB;
     gpio->GPIO_PinConfig.PinNumber = pin;
@@ -71,6 +72,13 @@ int main(void)
 	LCD_HandleTypedef lcd;
     LCD_StatusTypeDef lcd_status;
 	DHT11_StatusTypeDef dht11_status;
+    uint8_t Rh_byte1 = 0U;
+    uint8_t Rh_byte2 = 0U;
+    uint8_t Temp_byte1 = 0U;
+    uint8_t Temp_byte2 = 0U;
+    uint8_t SUM = 0U;
+    char display_text[17];
+    int display_length;
 
     memset(&scl, 0, sizeof(scl));
     memset(&sda, 0, sizeof(sda));
@@ -127,30 +135,101 @@ int main(void)
     //     }
     // }
 
-	dht11_status = DHT11_Start(&dht11, &timer);
-	if(dht11_status != DHT11_OK)
-	{
-		lcd_status = LCD_SetCursor(&lcd, 0U, 0U);
-		if (lcd_status == LCD_OK)
-		{
-			lcd_status = LCD_Print(&lcd, "DHT11 Error!");
-		}
-		if (lcd_status != LCD_OK)
-		{
-			while (1)
-			{
-			}
-		}
-	}
-	lcd_status = LCD_Print(&lcd, "DHT11 Intlzd!");
-	if (lcd_status != LCD_OK)
-	{
-		while (1)
-		{
-		}
-	}
-
+	
     while (1)
     {
+        dht11_status = DHT11_Start(&dht11, &timer);
+        if(dht11_status != DHT11_OK)
+        {
+            lcd_status = LCD_SetCursor(&lcd, 0U, 0U);
+            if (lcd_status == LCD_OK)
+            {
+                lcd_status = LCD_Print(&lcd, "DHT11 Error!");
+            }
+            if (lcd_status != LCD_OK)
+            {
+                while (1)
+                {
+                }
+            }
+            while (1)
+            {
+            }
+        }
+
+        if ((DHT11_Read(&dht11, &timer, &Rh_byte1) != DHT11_OK) ||
+            (DHT11_Read(&dht11, &timer, &Rh_byte2) != DHT11_OK) ||
+            (DHT11_Read(&dht11, &timer, &Temp_byte1) != DHT11_OK) ||
+            (DHT11_Read(&dht11, &timer, &Temp_byte2) != DHT11_OK) ||
+            (DHT11_Read(&dht11, &timer, &SUM) != DHT11_OK) ||
+            ((uint8_t)(Rh_byte1 + Rh_byte2 + Temp_byte1 + Temp_byte2) != SUM))
+        {
+            lcd_status = LCD_Clear(&lcd);
+            if (lcd_status == LCD_OK)
+            {
+                lcd_status = LCD_SetCursor(&lcd, 0U, 0U);
+            }
+            if (lcd_status == LCD_OK)
+            {
+                lcd_status = LCD_Print(&lcd, "DHT11 Error!");
+            }
+            if (lcd_status != LCD_OK)
+            {
+                while (1)
+                {
+                }
+            }
+            while (1)
+            {
+            }
+        }
+
+        lcd_status = LCD_Clear(&lcd);
+        if (lcd_status == LCD_OK)
+        {
+            lcd_status = LCD_SetCursor(&lcd, 0U, 0U);
+        }
+        if (lcd_status == LCD_OK)
+        {
+            display_length = snprintf(display_text, sizeof(display_text),
+                                    "Temp: %u C", (unsigned int)Temp_byte1);
+            if ((display_length < 0) ||
+                ((size_t)display_length >= sizeof(display_text)))
+            {
+                lcd_status = LCD_ERROR;
+            }
+            else
+            {
+                lcd_status = LCD_Print(&lcd, display_text);
+            }
+        }
+        if (lcd_status != LCD_OK)
+        {
+            while (1)
+            {
+            }
+        }
+        lcd_status = LCD_SetCursor(&lcd, 1U, 0U);
+        if (lcd_status == LCD_OK)
+        {
+            display_length = snprintf(display_text, sizeof(display_text),
+                                    "Humidity: %u %%", (unsigned int)Rh_byte1);
+            if ((display_length < 0) ||
+                ((size_t)display_length >= sizeof(display_text)))
+            {
+                lcd_status = LCD_ERROR;
+            }
+            else
+            {
+                lcd_status = LCD_Print(&lcd, display_text);
+            }
+        }
+        if (lcd_status != LCD_OK)
+        {
+            while (1)
+            {
+            }
+        }
+        LCD_DelayMs(2000U);
     }
 }

@@ -115,6 +115,51 @@ DHT11_StatusTypeDef DHT11_Start(GPIO_HandleTypedef *dht11,
     return DHT11_OK;
 }
 
+DHT11_StatusTypeDef DHT11_Read(GPIO_HandleTypedef *dht11,
+                               TIM_HandleTypedef *timer,
+                               uint8_t *data)
+{
+    uint8_t byte = 0U;
+    uint8_t bit;
+    DHT11_StatusTypeDef status;
+
+    if ((DHT11_IsHandleValid(dht11) == 0U) || (timer == NULL) ||
+        (data == NULL) || (timer->Config.CounterFrequencyHz != 1000000U) ||
+        (timer->Config.Period != 0xFFFFFFFFU))
+    {
+        return DHT11_ERROR;
+    }
+
+    for (bit = 0U; bit < 8U; ++bit)
+    {
+        status = DHT11_WaitForLevel(dht11, timer, 1U, 120U);
+        if (status != DHT11_OK)
+        {
+            return status;
+        }
+
+        status = DHT11_DelayUs(timer, 40U);
+        if (status != DHT11_OK)
+        {
+            return status;
+        }
+
+        if (DHT11_ReadPin(dht11) != 0U)
+        {
+            byte |= (uint8_t)(1U << (7U - bit));
+        }
+
+        status = DHT11_WaitForLevel(dht11, timer, 0U, 120U);
+        if (status != DHT11_OK)
+        {
+            return status;
+        }
+    }
+
+    *data = byte;
+    return DHT11_OK;
+}
+
 static DHT11_StatusTypeDef DHT11_DriveLow(GPIO_HandleTypedef *dht11)
 {
     uint32_t pin;

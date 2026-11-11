@@ -35,7 +35,7 @@ set (MFLOAT_ABI_MIX                   "-mfloat-abi=softfp")
 #######################################################################
 
 ###################### VARIABLES ######################################
-set (PROJECT_NAME             "custom-drivers-lcd-interfacing")
+set (PROJECT_NAME             "dht11-lcd-custom-drivers")
 set (PROJECT_TYPE             "exe")
 set (LINKER_SCRIPT            "../STM32F411RETX_FLASH.ld")
 set (MCPU                     "-mcpu=Cortex-M4")

@@ -14,5 +14,7 @@ typedef enum
 
 DHT11_StatusTypeDef DHT11_Start(GPIO_HandleTypedef *dht11,
 							   TIM_HandleTypedef *timer);
-
+DHT11_StatusTypeDef DHT11_Read(GPIO_HandleTypedef *dht11,
+                               TIM_HandleTypedef *timer,
+                               uint8_t *data);
 #endif

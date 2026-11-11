@@ -24,7 +24,7 @@ P7 -> D7        (MSB)
 #define LCD_REGISTER_SELECT 0x01U
 #define LCD_I2C_TIMEOUT_MS  100U
 
-static void LCD_DelayMs(uint32_t milliseconds)
+void LCD_DelayMs(uint32_t milliseconds)
 {
     if (milliseconds == 0U)
     {

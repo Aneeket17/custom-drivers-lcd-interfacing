@@ -24,5 +24,5 @@ LCD_StatusTypeDef LCD_Clear(LCD_HandleTypedef *lcd);
 LCD_StatusTypeDef LCD_SetCursor(LCD_HandleTypedef *lcd, uint8_t row,
                                 uint8_t column);
 LCD_StatusTypeDef LCD_Print(LCD_HandleTypedef *lcd, const char *text);
-
+void LCD_DelayMs(uint32_t milliseconds);
 #endif

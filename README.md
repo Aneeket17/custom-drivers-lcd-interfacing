@@ -1,11 +1,12 @@
-# STM32F411 LCD and DHT11 Drivers
+# dht11-lcd-custom-drivers
 
 Bare-metal drivers for an HD44780-compatible character LCD with a PCF8574 I2C
-expander, a DHT11 sensor, and STM32F411 general-purpose timers. The example
-uses the LCD to report whether the DHT11 startup handshake succeeds. It does
-not yet read or display temperature and humidity values.
+expander, a DHT11 sensor, and STM32F411 general-purpose timers. The firmware
+reads the sensor every two seconds, verifies the checksum, and displays the
+integer temperature and relative humidity values on the LCD. It displays
+`DHT11 Error!` if sensor communication or checksum validation fails.
 
-[View the LCD and STM32 photo](./lcd-stm32.jpg).
+[View the LCD and STM32 photo](./stm32-dht11-lcd.jpg).
 
 ## Hardware connections
 
@@ -44,14 +45,23 @@ assumes a 16 MHz TIM2 input clock (the reset HSI clock with APB1 prescaled by
 The LCD delay routine uses SysTick and separately assumes a 16 MHz system
 clock.
 
+## Firmware behavior
+
+The application starts a DHT11 measurement, reads the five response bytes
+(humidity integer and decimal, temperature integer and decimal, and checksum),
+and validates the checksum. The LCD currently displays only the integer
+temperature and humidity bytes; decimal fractions are read but not displayed.
+After a valid reading, the application waits two seconds before requesting the
+next one. DHT11 communication and checksum failures are shown as `DHT11 Error!`.
+
 ## Build
 
 Install CMake, Ninja, and the `arm-none-eabi` GCC toolchain. From the project
-root, run:
+root, configure the project with the included toolchain file and build:
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=cubeide-gcc.cmake
 cmake --build build
 ```
 
-The firmware image is `build/custom-drivers-lcd-interfacing.elf`.
+The firmware image is `build/dht11-lcd-custom-drivers.elf`.
