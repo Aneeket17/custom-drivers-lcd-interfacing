@@ -88,7 +88,7 @@ uint32_t RCC_GetPCLK1Value(void)
 {
 	uint32_t pclk1, sysClock;
 	uint8_t clkSrc, temp, ahbp, apb1p;
-	clkSrc = ((RCC->CFGR >> 2) && 0x3);
+	clkSrc = (uint8_t)((RCC->CFGR >> 2) & 0x3U);
 	if(clkSrc==0)
 	{
 		// HSI (16 MHz)
@@ -100,10 +100,13 @@ uint32_t RCC_GetPCLK1Value(void)
 	}else if(clkSrc==2)
 	{
 		sysClock = RCC_GetPLLOutputClock();
+	}else
+	{
+		return 0U;
 	}
 
 	// ahb
-	temp = (RCC->CFGR >> 4) && 0xF; // Bits 7 - 4 are AHB prescaler bits
+	temp = (uint8_t)((RCC->CFGR >> 4) & 0xFU); // Bits 7 - 4 are AHB prescaler bits
 	if(temp < 0x08)
 		{
 			ahbp = 1;
@@ -130,23 +133,81 @@ uint32_t RCC_GetPCLK1Value(void)
 /*********************************************************************
  * @fn      		  - I2C_Init
  *
- * @brief             -
+ * @brief             Validates the handle and timing configuration, then
+ *                    initializes the selected I2C peripheral.
  *
  * @param[in]         -
  * @param[in]         -
  * @param[in]         -
  *
- * @return            -
+ * @return            I2C_OK on success, otherwise I2C_ERROR.
  *
- * @Note              -
+ * @Note              This function does not enable the I2C peripheral.
 
  */
-void I2C_Init(I2C_HandleTypedef *pI2CHandle)
+I2C_StatusTypeDef I2C_Init(I2C_HandleTypedef *pI2CHandle)
 {
-	uint32_t tempreg = 0 ;
+	uint32_t tempreg = 0U;
+	uint32_t pclk1;
+	uint32_t ccr_value;
+	uint32_t trise_value;
+	uint32_t scl_speed;
+	uint8_t fast_mode;
 
-	//enable the clock for the i2cx peripheral
-	I2C_PeriClockControl(pI2CHandle->pI2Cx,ENABLE);
+	if ((pI2CHandle == NULL) || (pI2CHandle->pI2Cx == NULL))
+	{
+		return I2C_ERROR;
+	}
+
+	if ((pI2CHandle->pI2Cx != I2C1) &&
+		(pI2CHandle->pI2Cx != I2C2) &&
+		(pI2CHandle->pI2Cx != I2C3))
+	{
+		return I2C_ERROR;
+	}
+
+	if ((pI2CHandle->I2C_Config.I2C_AckControl > I2C_ACK_ENABLE) ||
+		(pI2CHandle->I2C_Config.I2C_DeviceAddress > 0x7FU) ||
+		(pI2CHandle->I2C_Config.I2C_FMDutyCycle > I2C_FM_DUTY_16_9))
+	{
+		return I2C_ERROR;
+	}
+
+	scl_speed = pI2CHandle->I2C_Config.I2C_SCLSpeed;
+	if ((scl_speed == 0U) || (scl_speed > I2C_SCL_SPEED_FM4K))
+	{
+		return I2C_ERROR;
+	}
+
+	pclk1 = RCC_GetPCLK1Value();
+	if ((pclk1 < 2000000U) || (pclk1 > 50000000U))
+	{
+		return I2C_ERROR;
+	}
+
+	fast_mode = (uint8_t)(scl_speed > I2C_SCL_SPEED_SM);
+	if (fast_mode != 0U)
+	{
+		ccr_value = pclk1 / ((pI2CHandle->I2C_Config.I2C_FMDutyCycle ==
+							 I2C_FM_DUTY_2) ? (3U * scl_speed) :
+							 (25U * scl_speed));
+		trise_value = (uint32_t)(((uint64_t)pclk1 * 300U) /
+								 1000000000U) + 1U;
+	}
+	else
+	{
+		ccr_value = pclk1 / (2U * scl_speed);
+		trise_value = (pclk1 / 1000000U) + 1U;
+	}
+
+	if ((ccr_value == 0U) || (ccr_value > 0xFFFU) ||
+		(trise_value > 0x3FU))
+	{
+		return I2C_ERROR;
+	}
+
+	/* Enable the clock only after all inputs and timing values are validated. */
+	I2C_PeriClockControl(pI2CHandle->pI2Cx, ENABLE);
 
 	//ack control bit
 	tempreg |= pI2CHandle->I2C_Config.I2C_AckControl << 10;
@@ -154,7 +215,7 @@ void I2C_Init(I2C_HandleTypedef *pI2CHandle)
 
 	//configure the FREQ field of CR2
 	tempreg = 0;
-	tempreg |= RCC_GetPCLK1Value() /1000000U ;
+	tempreg |= pclk1 / 1000000U ;
 	pI2CHandle->pI2Cx->CR2 =  (tempreg & 0x3F);
 
    //program the device own address
@@ -168,45 +229,24 @@ void I2C_Init(I2C_HandleTypedef *pI2CHandle)
 	// THIGH(SCL) = CCR * TPCLK1
 	// TLOW(SCL)  = CCR * TPCLK1
 	// THIGH = TLOW. So, TSCL=2*CCR*TPCLK1, CCR = TSCL/(2*TPCLK1), CCR = FPCLK1/(2*FSCL)
-	uint16_t ccr_value = 0;
 	tempreg = 0;
-	if(pI2CHandle->I2C_Config.I2C_SCLSpeed <= I2C_SCL_SPEED_SM)
+	if(fast_mode == 0U)
 	{
 		//mode is standard mode
-		ccr_value = (RCC_GetPCLK1Value() / ( 2 * pI2CHandle->I2C_Config.I2C_SCLSpeed ) );
 		tempreg |= (ccr_value & 0xFFF);
 	}else
 	{
 		//mode is fast mode
 		tempreg |= ( 1 << 15);
 		tempreg |= (pI2CHandle->I2C_Config.I2C_FMDutyCycle << 14);
-		if(pI2CHandle->I2C_Config.I2C_FMDutyCycle == I2C_FM_DUTY_2)
-		{
-			ccr_value = (RCC_GetPCLK1Value() / ( 3 * pI2CHandle->I2C_Config.I2C_SCLSpeed ) );
-		}else
-		{
-			ccr_value = (RCC_GetPCLK1Value() / ( 25 * pI2CHandle->I2C_Config.I2C_SCLSpeed ) );
-		}
 		tempreg |= (ccr_value & 0xFFF);
 	}
 	pI2CHandle->pI2Cx->CCR = tempreg;
 
 	//TRISE Configuration
-	if(pI2CHandle->I2C_Config.I2C_SCLSpeed <= I2C_SCL_SPEED_SM)
-	{
-		//mode is standard mode
+	pI2CHandle->pI2Cx->TRISE = (trise_value & 0x3FU);
 
-		tempreg = (RCC_GetPCLK1Value() /1000000U) + 1 ;
-
-	}else
-	{
-		//mode is fast mode
-		tempreg = ( (RCC_GetPCLK1Value() * 300) / 1000000000U ) + 1;
-
-	}
-
-	pI2CHandle->pI2Cx->TRISE = (tempreg & 0x3F);
-
+	return I2C_OK;
 }
 
 

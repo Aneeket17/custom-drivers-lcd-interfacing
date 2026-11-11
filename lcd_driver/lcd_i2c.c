@@ -24,22 +24,6 @@ P7 -> D7        (MSB)
 #define LCD_REGISTER_SELECT 0x01U
 #define LCD_I2C_TIMEOUT_MS  100U
 
-static LCD_StatusTypeDef LCD_I2C_Init(I2C_HandleTypedef *i2c)
-{
-    if ((i2c == NULL) || (i2c->pI2Cx == NULL))
-    {
-        return LCD_ERROR;
-    }
-
-    i2c->I2C_Config.I2C_AckControl = I2C_ACK_ENABLE;
-    i2c->I2C_Config.I2C_FMDutyCycle = I2C_FM_DUTY_2;
-    i2c->I2C_Config.I2C_SCLSpeed = I2C_SCL_SPEED_SM;
-
-    I2C_Init(i2c);
-    I2C_PeripheralControl(i2c->pI2Cx, ENABLE);
-    return LCD_OK;
-}
-
 static void LCD_DelayMs(uint32_t milliseconds)
 {
     if (milliseconds == 0U)
@@ -141,12 +125,6 @@ LCD_StatusTypeDef LCD_Init(LCD_HandleTypedef *lcd, I2C_HandleTypedef *i2c,
     lcd->i2c = i2c;
     lcd->address = address;
     lcd->backlight = LCD_BACKLIGHT;
-
-    status = LCD_I2C_Init(i2c);
-    if (status != LCD_OK)
-    {
-        return status;
-    }
 
     /* Allow power-up to complete before entering the controller's 4-bit mode. */
     LCD_DelayMs(50U);

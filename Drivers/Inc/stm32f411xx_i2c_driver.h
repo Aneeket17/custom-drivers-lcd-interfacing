@@ -123,7 +123,8 @@ void I2C_PeriClockControl(I2C_RegDefTypedef *pI2Cx, uint8_t EnorDi);
 /*
  * Init and De-init
  */
-void I2C_Init(I2C_HandleTypedef *pI2CHandle);
+/* Returns I2C_ERROR for invalid handles, configuration, or PCLK1 timing. */
+I2C_StatusTypeDef I2C_Init(I2C_HandleTypedef *pI2CHandle);
 void I2C_DeInit(I2C_RegDefTypedef *pI2Cx);
 
 

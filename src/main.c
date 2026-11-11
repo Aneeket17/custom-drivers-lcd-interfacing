@@ -25,13 +25,35 @@ void I2C_ApplicationEventCallback(I2C_HandleTypedef *i2c, uint8_t event)
     (void)event;
 }
 
+static I2C_StatusTypeDef LCD_I2C_Init(I2C_HandleTypedef *i2c)
+{
+    if (i2c == NULL)
+    {
+        return I2C_ERROR;
+    }
+
+    i2c->pI2Cx = I2C1;
+    i2c->I2C_Config.I2C_AckControl = I2C_ACK_ENABLE;
+    i2c->I2C_Config.I2C_FMDutyCycle = I2C_FM_DUTY_2;
+    i2c->I2C_Config.I2C_SCLSpeed = I2C_SCL_SPEED_SM;
+
+    I2C_StatusTypeDef status = I2C_Init(i2c);
+    if (status != I2C_OK)
+    {
+        return status;
+    }
+
+    I2C_PeripheralControl(i2c->pI2Cx, ENABLE);
+    return I2C_OK;
+}
+
 int main(void)
 {
     GPIO_HandleTypedef scl;
     GPIO_HandleTypedef sda;
     I2C_HandleTypedef i2c;
     LCD_HandleTypedef lcd;
-    LCD_StatusTypeDef status;
+    LCD_StatusTypeDef lcd_status;
 
     memset(&scl, 0, sizeof(scl));
     memset(&sda, 0, sizeof(sda));
@@ -41,27 +63,33 @@ int main(void)
     ConfigureI2CPin(&scl, GPIO_PIN_6); /* PB6: I2C1_SCL */
     ConfigureI2CPin(&sda, GPIO_PIN_7); /* PB7: I2C1_SDA */
 
-    i2c.pI2Cx = I2C1;
-    status = LCD_Init(&lcd, &i2c, LCD_I2C_ADDRESS);
-    if (status != LCD_OK)
+    if (LCD_I2C_Init(&i2c) != I2C_OK)
     {
         while (1)
         {
         }
     }
 
-    status = LCD_SetCursor(&lcd, 0U, 0U);
-    if (status == LCD_OK)
+    lcd_status = LCD_Init(&lcd, &i2c, LCD_I2C_ADDRESS);
+    if (lcd_status != LCD_OK)
     {
-        status = LCD_Print(&lcd, "Hello, LCD!!");
-    }
-	status = LCD_SetCursor(&lcd, 1U, 0U);
-    if (status == LCD_OK)
-    {
-        status = LCD_Print(&lcd, "Custom drivers!");
+        while (1)
+        {
+        }
     }
 
-    if (status != LCD_OK)
+    lcd_status = LCD_SetCursor(&lcd, 0U, 0U);
+    if (lcd_status == LCD_OK)
+    {
+        lcd_status = LCD_Print(&lcd, "Hello, LCD!!");
+    }
+	lcd_status = LCD_SetCursor(&lcd, 1U, 0U);
+    if (lcd_status == LCD_OK)
+    {
+        lcd_status = LCD_Print(&lcd, "Custom drivers!");
+    }
+
+    if (lcd_status != LCD_OK)
     {
         while (1)
         {
