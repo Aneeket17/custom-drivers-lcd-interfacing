@@ -53,7 +53,9 @@ set (PROJECT_SOURCES
 	src/sysmem.c
 	Drivers/Src/stm32f411xx_gpio_driver.c
 	Drivers/Src/stm32f411xx_i2c_driver.c
+	Drivers/Src/stm32f411xx_timer_driver.c
 	lcd_driver/lcd_i2c.c
+	dht11_driver/dht11.c
 
 
 	)
@@ -67,6 +69,7 @@ set (PROJECT_INCLUDES
 	# LIST INCLUDE DIRECTORIES HERE
 	Drivers/Inc
 	lcd_driver
+	dht11_driver
     )
 
 ############ MODIFY ACCORDING TO REQUIREMENTS) ########################

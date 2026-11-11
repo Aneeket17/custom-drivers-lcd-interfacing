@@ -450,6 +450,25 @@ typedef struct
 }I2C_RegDefTypedef;
 
 /*
+ * General-purpose timer register definition (TIM2-TIM5 common base registers)
+ */
+typedef struct
+{
+	__vo uint32_t CR1;       /* Control register 1, offset: 0x00 */
+	__vo uint32_t CR2;       /* Control register 2, offset: 0x04 */
+	__vo uint32_t SMCR;      /* Slave mode control register, offset: 0x08 */
+	__vo uint32_t DIER;      /* DMA/interrupt enable register, offset: 0x0C */
+	__vo uint32_t SR;        /* Status register, offset: 0x10 */
+	__vo uint32_t EGR;       /* Event generation register, offset: 0x14 */
+	__vo uint32_t CCMR1;     /* Capture/compare mode register 1, offset: 0x18 */
+	__vo uint32_t CCMR2;     /* Capture/compare mode register 2, offset: 0x1C */
+	__vo uint32_t CCER;      /* Capture/compare enable register, offset: 0x20 */
+	__vo uint32_t CNT;       /* Counter, offset: 0x24 */
+	__vo uint32_t PSC;       /* Prescaler, offset: 0x28 */
+	__vo uint32_t ARR;       /* Auto-reload register, offset: 0x2C */
+}TIM_RegDefTypedef;
+
+/*
  * peripheral register definition structure for USART
  */
 typedef struct
@@ -495,6 +514,11 @@ typedef struct
 #define I2C1		((I2C_RegDefTypedef*)I2C1_BASEADDR)
 #define I2C2		((I2C_RegDefTypedef*)I2C2_BASEADDR)
 #define I2C3		((I2C_RegDefTypedef*)I2C3_BASEADDR)
+
+#define TIM2		((TIM_RegDefTypedef*)TIM2_BASEADDR)
+#define TIM3		((TIM_RegDefTypedef*)TIM3_BASEADDR)
+#define TIM4		((TIM_RegDefTypedef*)TIM4_BASEADDR)
+#define TIM5		((TIM_RegDefTypedef*)TIM5_BASEADDR)
 
 #define USART1  	((USART_RegDefTypedef*)USART1_BASEADDR)
 #define USART2  	((USART_RegDefTypedef*)USART2_BASEADDR)
@@ -547,6 +571,14 @@ typedef struct
 #define I2C1_PCLK_EN()		(RCC->APB1ENR |= (1 << 21))
 #define I2C2_PCLK_EN()		(RCC->APB1ENR |= (1 << 22))
 #define I2C3_PCLK_EN()		(RCC->APB1ENR |= (1 << 23))
+
+/*
+ * Clock enable macros for general-purpose timers
+ */
+#define TIM2_PCLK_EN()		(RCC->APB1ENR |= (1U << 0))
+#define TIM3_PCLK_EN()		(RCC->APB1ENR |= (1U << 1))
+#define TIM4_PCLK_EN()		(RCC->APB1ENR |= (1U << 2))
+#define TIM5_PCLK_EN()		(RCC->APB1ENR |= (1U << 3))
 
 /*
  * clock enable macros for SPIx peripherals
